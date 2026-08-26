@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Stake Layout Editor</title>
+	<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+	<header id="toolbar">
+		<div class="tb-group">
+			<button id="btn-open" title="Open a Stake Engine game project">Open Project</button>
+		</div>
+		<div class="tb-group">
+			<button id="btn-preview" title="Start the game dev server + mock RGS and load the game">Start Preview</button>
+			<button id="btn-restart" title="Reload the game preview">Restart</button>
+			<button id="btn-rgs" title="Start / attach the mock RGS server">Mock RGS</button>
+		</div>
+		<div class="tb-group">
+			<select id="sel-preset" title="Device / resolution preset"></select>
+			<button id="btn-orient" title="Toggle portrait / landscape">⟳</button>
+			<input id="in-width" type="number" min="200" max="4096" title="Preview width" />
+			<span class="dim">×</span>
+			<input id="in-height" type="number" min="200" max="4096" title="Preview height" />
+			<button id="btn-prev-res" title="Previous preset">◀</button>
+			<button id="btn-next-res" title="Next preset">▶</button>
+		</div>
+		<div class="tb-group">
+			<span class="dim">Edit target</span>
+			<select id="sel-scope" title="Which layout the edits are written to">
+				<option value="profile">Current profile</option>
+				<option value="base">Base layout</option>
+			</select>
+		</div>
+		<div class="tb-group" id="mode-toggle">
+			<button id="btn-mode-edit" title="Edit mode: pause supported game playout after its current step, then click + drag elements">Edit</button>
+			<button id="btn-mode-preview" title="Play mode: resume supported game playout and use the game normally">Play</button>
+		</div>
+		<div class="tb-group">
+			<button id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
+			<button id="btn-redo" title="Redo (Ctrl+Y)">↷</button>
+			<button id="btn-save" title="Review + save layout changes into the project (Ctrl+S)">Save…</button>
+			<button id="btn-add" title="Add a new element from the game's assets">＋ Add</button>
+		</div>
+		<div class="tb-group">
+			<button id="btn-menu-reset" title="Reset / revert actions">Reset ▾</button>
+			<button id="btn-menu-layout" title="Copy layouts between profiles">Layout ▾</button>
+			<button id="btn-menu-guides" title="Guides, grid and snapping">Guides ▾</button>
+			<button id="btn-menu-states" title="Trigger game states for editing">States ▾</button>
+		</div>
+		<div class="tb-group tb-right">
+			<button id="btn-menu-setup" title="Bridge integration, verification and setup docs">Setup ▾</button>
+			<button id="btn-shot" title="Save a screenshot of the editor">📷</button>
+			<button id="btn-testcases" title="Open the saved test-book simulator" aria-expanded="false" aria-controls="testcases-panel">Simulator</button>
+			<button id="btn-performance" title="Show live FPS, CPU timing, and Pixi draw calls" aria-expanded="false" aria-controls="performance-panel">Performance</button>
+			<button id="btn-logs" title="Show / hide logs">Logs</button>
+		</div>
+	</header>
+
+	<main id="main">
+		<aside id="left">
+			<div class="panel-head">
+				<input id="in-search" type="search" placeholder="Search elements…" />
+			</div>
+			<div class="panel-filters" id="filters">
+				<button data-type="sprite" class="chip" title="Sprites / images">img</button>
+				<button data-type="text" class="chip" title="Text fields">text</button>
+				<button data-type="container" class="chip" title="Containers / groups">group</button>
+				<button data-type="spine" class="chip" title="Spine animations">spine</button>
+				<button data-type="graphics" class="chip" title="Shapes">shape</button>
+				<button id="chip-visible" class="chip" title="Only currently visible elements">visible</button>
+				<button id="chip-overridden" class="chip" title="Only elements with overrides">edited</button>
+				<button id="chip-removed" class="chip" title="Show removed elements (to restore them)">removed</button>
+			</div>
+			<div id="tree" tabindex="0"></div>
+		</aside>
+
+		<section id="center">
+			<div id="viewport">
+				<div id="stage-outer">
+					<div id="stage">
+						<iframe id="game-frame" title="Game preview"></iframe>
+						<div id="stage-placeholder">
+							<div>
+								<h2>No game loaded</h2>
+								<p>Open a project and press <b>Start Preview</b>.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="viewport-bar">
+				<button id="btn-zoom-out" title="Zoom out">−</button>
+				<span id="zoom-label">fit</span>
+				<button id="btn-zoom-in" title="Zoom in">+</button>
+				<button id="btn-zoom-fit" title="Fit preview to window">Fit</button>
+				<button id="btn-zoom-100" title="Actual size">100%</button>
+				<span class="spacer"></span>
+				<span id="vp-res" class="dim"></span>
+			</div>
+		</section>
+
+		<aside id="right">
+			<div id="inspector">
+				<div class="empty-hint">Select an element in the preview or the list.</div>
+			</div>
+		</aside>
+
+		<aside id="performance-panel" class="hidden" aria-label="Performance monitor">
+			<div class="perf-panel-head">
+				<div>
+					<strong>Performance monitor</strong>
+					<div id="perf-status" class="dim">Waiting for game preview…</div>
+				</div>
+				<button id="btn-performance-close" title="Close performance monitor" aria-label="Close performance monitor">✕</button>
+			</div>
+			<div class="perf-note">
+				CPU-side Pixi application ticker and render submission timings, sampled 4×/sec. GPU execution time is not included.
+			</div>
+			<div class="perf-metric" data-metric="fps">
+				<div class="perf-metric-head"><span>Frame rate</span><strong id="perf-fps-value">—</strong></div>
+				<canvas id="perf-fps-chart" aria-label="Frame rate history"></canvas>
+				<div id="perf-fps-stats" class="perf-stats">min — · avg — · max —</div>
+			</div>
+			<div class="perf-metric" data-metric="updateMs">
+				<div class="perf-metric-head"><span>App update</span><strong id="perf-update-value">—</strong></div>
+				<canvas id="perf-update-chart" aria-label="Pixi application ticker update history"></canvas>
+				<div id="perf-update-stats" class="perf-stats">min — · avg — · max —</div>
+			</div>
+			<div class="perf-metric" data-metric="renderMs">
+				<div class="perf-metric-head"><span>Render time</span><strong id="perf-render-value">—</strong></div>
+				<canvas id="perf-render-chart" aria-label="Render time history"></canvas>
+				<div id="perf-render-stats" class="perf-stats">min — · avg — · max —</div>
+			</div>
+			<div class="perf-metric" data-metric="drawCalls">
+				<div class="perf-metric-head"><span>Draw calls</span><strong id="perf-draw-value">—</strong></div>
+				<canvas id="perf-draw-chart" aria-label="Draw call history"></canvas>
+				<div id="perf-draw-stats" class="perf-stats">min — · avg — · max —</div>
+			</div>
+		</aside>
+
+		<aside id="testcases-panel" class="hidden" aria-label="Simulator">
+			<div class="tc-panel-head">
+				<div>
+					<strong>Simulator</strong>
+					<div id="tc-scan-status" class="dim">Open a project to scan for test books.</div>
+				</div>
+				<button id="btn-testcases-close" title="Close simulator" aria-label="Close simulator">&#10005;</button>
+			</div>
+			<div class="tc-actions">
+				<select id="tc-manifest" aria-label="Simulator test-book file"></select>
+				<button id="btn-testcases-refresh" title="Rescan the project's testcases folder" aria-label="Refresh simulator books">&#8635;</button>
+				<button id="btn-testcases-start" class="tc-start-button" disabled aria-busy="false">
+					<span class="tc-start-spinner" aria-hidden="true"></span>
+					<span id="tc-start-label">Start Round</span>
+				</button>
+			</div>
+			<input id="tc-filter" type="search" placeholder="Filter scenarios or book IDs..." aria-label="Filter simulator scenarios" />
+			<div class="tc-list-head">
+				<span id="tc-list-count">0 books</span>
+				<span id="tc-file-warning" class="tc-warning hidden"></span>
+			</div>
+			<div id="tc-list" role="radiogroup" aria-label="Available test books"></div>
+			<div id="tc-run-status" class="tc-run-status" role="status" aria-live="polite">
+				Select a book to start a forced round.
+			</div>
+		</aside>
+	</main>
+
+	<div id="logpanel" class="hidden">
+		<div class="log-tabs">
+			<button data-tab="dev" class="active">Dev server</button>
+			<button data-tab="rgs">Mock RGS</button>
+			<button data-tab="editor">Editor / game</button>
+			<span class="spacer"></span>
+			<button id="btn-log-clear">Clear</button>
+			<button id="btn-log-close">✕</button>
+		</div>
+		<pre id="log-dev" class="log-body active"></pre>
+		<pre id="log-rgs" class="log-body"></pre>
+		<pre id="log-editor" class="log-body"></pre>
+	</div>
+
+	<footer id="statusbar">
+		<span id="st-project" title="Project">no project</span>
+		<span id="st-dev" title="Dev server status">dev ○</span>
+		<span id="st-rgs" title="Mock RGS status">rgs ○</span>
+		<span id="st-res" title="Preview resolution"></span>
+		<span id="st-profile" title="Active layout profile (from the game)"></span>
+		<span id="st-state" title="Current game state"></span>
+		<span id="st-sel" title="Selection"></span>
+		<span class="spacer"></span>
+		<span id="st-unsaved"></span>
+	</footer>
+
+	<div id="menu-root"></div>
+	<div id="modal-root"></div>
+	<div id="toast-root"></div>
+
+	<script type="module" src="./js/app.js"></script>
+</body>
+</html>

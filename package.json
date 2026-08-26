@@ -1,0 +1,41 @@
+{
+	"name": "stake-layout-editor",
+	"productName": "Stake Layout Editor",
+	"version": "0.1.0",
+	"description": "Visual layout editor for Stake Engine Svelte (pixi-svelte) game projects",
+	"private": true,
+	"main": "src/main/main.js",
+	"scripts": {
+		"start": "electron .",
+		"start:debug": "set SLE_DEBUG=1&& electron .",
+		"test": "node --experimental-strip-types --test",
+		"dist": "electron-builder --win"
+	},
+	"devDependencies": {
+		"electron": "^33.0.0",
+		"electron-builder": "^25.1.8"
+	},
+	"build": {
+		"appId": "com.sidelines.stake-layout-editor",
+		"productName": "Stake Layout Editor",
+		"asarUnpack": [
+			"src/main/testBookExtractor.mjs"
+		],
+		"files": [
+			"src/**/*",
+			"resources/**/*",
+			"SETUP_GUIDE.md",
+			"AI_SETUP_PROMPT.md",
+			"package.json"
+		],
+		"directories": {
+			"output": "release"
+		},
+		"win": {
+			"target": [
+				"nsis",
+				"portable"
+			]
+		}
+	}
+}
