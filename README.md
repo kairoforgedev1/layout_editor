@@ -62,6 +62,14 @@ CPU command-generation/submission time, not GPU execution time. Draw calls show
 path. Opening or closing the dock also refits the preview when zoom is set to
 **Fit**.
 
+## Muting the preview
+
+The 🔊 button in the top-right toolbar (or `Ctrl+M`) silences the game preview.
+It mutes the editor window itself, so it works whatever audio stack the game
+uses and needs no bridge support or game-side changes. The setting is remembered
+between sessions and survives a game reload, an editor reload, and a mock RGS
+restart — if you left it muted, it stays muted until you turn it back on.
+
 ## Forced testcase books
 
 Put Math Checker's `*_test_books.json` manifests directly in the opened app's
@@ -471,15 +479,16 @@ RGS with the real math files) and switch to **Edit** mode at any moment.
 | Ctrl+S | save (with summary) |
 | Ctrl+R | reload the **game** preview, clearing the HTTP cache first |
 | Ctrl+Shift+R | reload the **whole editor** and restart its managed mock RGS (prompts if there are unsaved changes) |
+| Ctrl+M | mute / unmute the game preview |
 | Delete | remove selected element (opens the removal dialog) |
 | Esc | clear selection |
 | click again / Alt+click | cycle overlapping elements |
 | Shift while resizing | keep aspect ratio (corners always keep it) |
 
 In Edit mode the game does not receive keyboard/pointer input; in Play mode the
-editor does not intercept anything. The two reload shortcuts are the exception —
-they are handled by the main process, so they work even while the game iframe has
-focus.
+editor does not intercept anything. The reload and mute shortcuts are the
+exception — they are handled by the main process, so they work even while the
+game iframe has focus.
 
 **Use Ctrl+R after replacing an asset file in place.** Repainting an image that is
 already registered (for example a page image inside an existing atlas) changes no
@@ -527,7 +536,18 @@ prop sync and loading the data file — the bridge module is never even fetched.
   `VITE_SESSION_ID` in the app's `.env.local` when using the real RGS; with the
   local mock RGS any session id works.
 - **Port already in use** — the editor *attaches* to whatever already listens on
-  the app's dev port / RGS port instead of spawning a second copy.
+  the app's dev port / RGS port instead of spawning a second copy. Before
+  attaching to a dev server it did not start, it compares a sweep of the opened
+  project's `static/assets` manifests against the ones the server returns. If
+  they disagree the attach is refused with the conflicting file named, because
+  game apps hardcode the same `--port` and a leftover server from another
+  project would otherwise render *that* game while your edits saved into this
+  one. Stop the other server and press **Start Preview** again.
+- **Switching projects still shows the previous game's assets** — fixed: opening
+  a different app now stops the servers this editor started for the old one,
+  clears the cached asset list and thumbnails, and re-resolves the dev port.
+  The asset grid comes from the *running game* over the bridge, not from disk,
+  so it can only ever show what the preview is actually serving.
 - **Game reloads while editing** — editing files in the workspace (or rebuilding
   `pixi-svelte`) triggers Vite reload; the editor reconnects and re-applies your
   unsaved overrides automatically.

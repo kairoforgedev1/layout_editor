@@ -36,6 +36,7 @@ export const state = {
     runPhase: null, // null | preparing | starting
     lastResult: null,
   },
+  muted: false, // game preview audio; the host window holds the real flag
   mode: "preview", // 'edit' | 'preview'
   scope: "profile", // 'profile' | 'base'
   resolution: { width: 1280, height: 720, presetIndex: 10 },

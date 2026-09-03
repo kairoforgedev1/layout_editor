@@ -18,11 +18,27 @@ export async function openProject(dir = null) {
 	const picked = dir ?? (await host.pickFolder(state.config.lastProject ?? undefined));
 	if (!picked) return false;
 	const generation = ++openGeneration;
+	const previousAppDir = state.project?.appDir ?? null;
 	const info = await host.inspectProject(picked);
 	if (generation !== openGeneration) return false;
 	if (!info.ok) {
 		toast(info.error, 'error', 6000);
 		return false;
+	}
+	// Switching games must not inherit the previous game's servers. ensureDevServer()
+	// short-circuits on a "ready" entry, so leaving this state behind would point the
+	// new preview straight back at the old project's dev server — and its assets.
+	// stopProc only kills processes this editor started; an attached one is left
+	// running but is no longer treated as ours.
+	if (previousAppDir && previousAppDir !== info.appDir) {
+		await host.stopProc('dev');
+		await host.stopProc('rgs');
+		log('dev', `[editor] released the servers for ${previousAppDir}`);
+	}
+	if (previousAppDir !== info.appDir) {
+		state.procs.dev = { status: 'stopped', port: null };
+		state.procs.rgs = { status: 'stopped', port: null };
+		emit('proc');
 	}
 	resetBridgeNavigation();
 	const previewFrame = document.getElementById('game-frame');
@@ -149,6 +165,32 @@ export async function ensureDevServer() {
 	if (!project) return null;
 	if (state.procs.dev.status === 'ready' && state.procs.dev.port) return state.procs.dev.port;
 	if (await host.checkPort(project.devPort)) {
+		// Game apps hardcode the same dev port, so an occupied port is not proof that
+		// the right game is behind it. Adopting a stranger renders another game in the
+		// preview while edits save into this project — check before trusting it.
+		const identity = typeof host.verifyDevServer === 'function'
+			? await host.verifyDevServer(project.appDir, project.devPort)
+			: null;
+		if (identity?.verified && identity.matches === false) {
+			const detail = identity.reason ?? 'it serves different files';
+			toast(
+				`Port ${project.devPort} is already used by another project's dev server — ${detail}. ` +
+					'Stop that server, then press Start Preview again.',
+				'error',
+				10000,
+			);
+			log('dev', `[editor] refused to attach on port ${project.devPort}: ${detail}`);
+			state.procs.dev = { status: 'error', port: project.devPort };
+			emit('proc');
+			return null;
+		}
+		if (!identity?.verified) {
+			log(
+				'dev',
+				`[editor] could not confirm the server on port ${project.devPort} belongs to this project` +
+					`${identity?.reason ? ` (${identity.reason})` : ''}`,
+			);
+		}
 		state.procs.dev = { status: 'ready', port: project.devPort, attached: true };
 		emit('proc');
 		log('dev', `[editor] attached to running dev server on port ${project.devPort}`);

@@ -45,6 +45,14 @@ on('preview', () => {
 	wasConnected = state.preview.connected;
 });
 
+// A different game has different assets. Drop the cached list and every cached
+// thumbnail on any project change, so nothing from the previous game can be
+// listed or drawn while the new one loads.
+on('project', () => {
+	wasConnected = false;
+	clearAssetCaches();
+});
+
 export const preferredSpineAnimation = (asset) => {
 	const animations = asset?.animations ?? [];
 	return (

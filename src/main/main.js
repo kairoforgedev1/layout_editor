@@ -22,6 +22,7 @@ const { analyzeIntegration, installIntegration } = require("./integration");
 const { scanAssets, registerAssets } = require("./assetScan");
 const { scanTestCases } = require("./testCases");
 const { runTestCase, stopTestCaseExtractions } = require("./testCaseRunner");
+const { verifyDevServer } = require("./devServerIdentity");
 
 let win = null;
 
@@ -43,6 +44,15 @@ const saveConfig = (partial) => {
   return next;
 };
 
+/**
+ * Muting the window mutes the game iframe with it. The editor page itself is
+ * silent, so this is exactly "mute the preview" without needing the game to
+ * cooperate — it works whatever audio stack the game happens to use.
+ */
+const applyAudioMute = (muted) => {
+  win?.webContents.setAudioMuted(!!muted);
+};
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1680,
@@ -62,19 +72,30 @@ function createWindow() {
   });
   win.removeMenu();
 
-  // Reload hotkeys. Handled here (not in the renderer) so they also fire while
+  applyAudioMute(loadConfig().muted);
+  // The mute flag lives on the WebContents, so re-assert it after every load.
+  // An editor reload or a game navigation must not quietly bring sound back.
+  win.webContents.on("did-finish-load", () => applyAudioMute(loadConfig().muted));
+
+  // Global hotkeys. Handled here (not in the renderer) so they also fire while
   // focus is inside the game iframe, which swallows its own keydown events.
   //   Ctrl/Cmd+R        -> reload just the game preview (cache bypassed)
   //   Ctrl/Cmd+Shift+R  -> reload the editor + its managed mock RGS
+  //   Ctrl/Cmd+M        -> mute / unmute the game preview
   // The renderer decides what to do, so it can guard unsaved layout changes.
   win.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
-    if (!(input.control || input.meta) || input.key.toLowerCase() !== "r")
-      return;
-    event.preventDefault();
-    win.webContents.send("editor:hotkey", {
-      action: input.shift ? "reloadEditor" : "reloadGame",
-    });
+    if (!(input.control || input.meta)) return;
+    const key = input.key.toLowerCase();
+    if (key === "r") {
+      event.preventDefault();
+      win.webContents.send("editor:hotkey", {
+        action: input.shift ? "reloadEditor" : "reloadGame",
+      });
+    } else if (key === "m" && !input.shift) {
+      event.preventDefault();
+      win.webContents.send("editor:hotkey", { action: "toggleMute" });
+    }
   });
 
   forwardConsoleMessages(win);
@@ -168,8 +189,30 @@ ipcMain.handle("proc:stop", (_event, { kind }) => {
 
 ipcMain.handle("port:check", (_event, { port }) => probePort(port));
 
+// Is the server already on this port serving the project the editor has open?
+ipcMain.handle("dev:verify", async (_event, { appDir, port }) => {
+  try {
+    return await verifyDevServer({ appDir, port });
+  } catch (error) {
+    return { ok: false, verified: false, error: String(error.message ?? error) };
+  }
+});
+
 ipcMain.handle("config:get", () => loadConfig());
 ipcMain.handle("config:set", (_event, partial) => saveConfig(partial));
+
+ipcMain.handle("audio:get", () => ({
+  muted: win ? win.webContents.isAudioMuted() : false,
+}));
+
+// Report the flag actually in effect rather than the one requested, so a
+// renderer that lost its window cannot leave the button showing a lie.
+ipcMain.handle("audio:setMuted", (_event, { muted }) => {
+  const next = !!muted;
+  saveConfig({ muted: next });
+  applyAudioMute(next);
+  return { ok: true, muted: win ? win.webContents.isAudioMuted() : next };
+});
 
 ipcMain.handle("shell:openPath", (_event, { target }) =>
   shell.openPath(target),

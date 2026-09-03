@@ -19,6 +19,7 @@ import { initInspector } from './inspector.js';
 import { initToolbar, setMode, doSave } from './toolbar.js';
 import { initStatusbar } from './statusbar.js';
 import { initPerformanceMonitor } from './performanceMonitor.js';
+import { initAudio, toggleMute } from './audio.js';
 import { initTestCasesPanel } from './testCasesPanel.js';
 import {
 	initProcEvents,
@@ -132,6 +133,7 @@ async function boot() {
 	window.editorHost.onEditorHotkey(({ action }) => {
 		if (action === 'reloadEditor') reloadEditorWindow();
 		else if (action === 'reloadGame') hardReloadGame();
+		else if (action === 'toggleMute') toggleMute();
 	});
 
 	initViewport();
@@ -141,6 +143,7 @@ async function boot() {
 	initStatusbar();
 	initPerformanceMonitor();
 	initTestCasesPanel();
+	initAudio();
 	initKeyboard();
 
 	setResolution(1280, 720, 10);
@@ -156,6 +159,7 @@ async function boot() {
 		reloadEditorWindow,
 		setResolution,
 		setMode,
+		toggleMute,
 		doSave,
 		bridgeSend,
 		bridgeRequest,

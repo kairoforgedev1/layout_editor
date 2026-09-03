@@ -15,7 +15,11 @@ contextBridge.exposeInMainWorld("editorHost", {
   startProc: (options) => ipcRenderer.invoke("proc:start", options),
   stopProc: (kind) => ipcRenderer.invoke("proc:stop", { kind }),
   checkPort: (port) => ipcRenderer.invoke("port:check", { port }),
+  verifyDevServer: (appDir, port) =>
+    ipcRenderer.invoke("dev:verify", { appDir, port }),
   getConfig: () => ipcRenderer.invoke("config:get"),
+  getAudioMuted: () => ipcRenderer.invoke("audio:get"),
+  setAudioMuted: (muted) => ipcRenderer.invoke("audio:setMuted", { muted }),
   setConfig: (partial) => ipcRenderer.invoke("config:set", partial),
   openPath: (target) => ipcRenderer.invoke("shell:openPath", { target }),
   capture: (outPath) => ipcRenderer.invoke("debug:capture", { outPath }),
