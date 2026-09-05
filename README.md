@@ -72,10 +72,29 @@ restart — if you left it muted, it stays muted until you turn it back on.
 
 ## Forced testcase books
 
-Put Math Checker's `*_test_books.json` manifests directly in the opened app's
+Put the published `*_test_books.json` manifests directly in the opened app's
 `testcases` folder. The editor scans that folder when the project opens. Press
 **Simulator** to choose a manifest, filter its scenarios, select one book, and
 press **Start Round**. No book is selected automatically.
+
+Two manifest versions are read. Prefer **v2** — it is the portable one:
+
+| | `formatVersion: 1` | `formatVersion: 2` |
+| --- | --- | --- |
+| `kind` | `math-checker-test-book-manifest` | `game-test-book-manifest` |
+| books located by | `gameFolder` — an **absolute** path on the publishing machine | `booksDirectory` — **relative to the manifest**, and must stay inside the app |
+| works for teammates | only if they have that exact path | yes, wherever the project is checked out |
+
+A v1 manifest resolves only on the machine that generated it; everyone else gets
+an error naming the folder it wanted. A rejected manifest never blocks the
+others — it is reported per file, so a bad `formatVersion` shows up as a scan
+error rather than an empty list with no explanation.
+
+The manifest is only an index. The books themselves live in the folder it names
+(`index.json` plus `books_<mode>.jsonl.zst`) and typically run to hundreds of
+megabytes, so they are usually **gitignored**. Committing the manifest alone
+gives teammates the list but not the rounds: **Start Round** then reports that
+the books folder is missing. Copy that folder to them out of band.
 
 The manifest is a compact index, not the round itself. On Start Round the editor
 validates its source token, streams the exact `(mode, bookId)` from the published

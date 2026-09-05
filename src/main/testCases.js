@@ -10,8 +10,18 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+// v1 manifests name an absolute publish folder on the machine that generated
+// them; v2 names a project-relative books directory and drops the publisher's
+// branding from `kind`. Both are read, so upgrading a project's manifests never
+// makes the editor lose sight of the ones it has not converted yet.
 const TEST_CASE_MANIFEST_KIND = 'math-checker-test-book-manifest';
+const TEST_CASE_MANIFEST_KIND_V2 = 'game-test-book-manifest';
 const TEST_CASE_FORMAT_VERSION = 1;
+const TEST_CASE_FORMAT_VERSION_V2 = 2;
+const SUPPORTED_MANIFEST_KINDS = new Map([
+	[TEST_CASE_FORMAT_VERSION, TEST_CASE_MANIFEST_KIND],
+	[TEST_CASE_FORMAT_VERSION_V2, TEST_CASE_MANIFEST_KIND_V2],
+]);
 const MAX_MANIFEST_FILES = 100;
 const MAX_MANIFEST_BYTES = 5 * 1024 * 1024;
 const MAX_BOOKS_PER_MANIFEST = 10_000;
@@ -154,6 +164,8 @@ function normalizeBook(value, index, { fileName, sourceToken }) {
 		bonusType: optionalString(value.bonusType, 128),
 		scatterCount: optionalFiniteNumber(value.scatterCount, { integer: true }),
 		reason: optionalString(value.reason, 1_000),
+		// v2 only. Absent on v1 manifests, where it is unknown rather than false.
+		stakeReplaySafe: typeof value.stakeReplaySafe === 'boolean' ? value.stakeReplaySafe : null,
 		scenario: normalizeScenario(value.scenario),
 	};
 }
@@ -175,11 +187,19 @@ function parseTestCaseManifest(source, { fileName = 'test-books.json' } = {}) {
 		throw new TestCaseManifestError(`invalid JSON: ${error.message}`);
 	}
 	if (!isObject(parsed)) throw new TestCaseManifestError('manifest root must be an object');
-	if (parsed.formatVersion !== TEST_CASE_FORMAT_VERSION) {
-		throw new TestCaseManifestError(`unsupported formatVersion ${String(parsed.formatVersion)}`);
+	const formatVersion = parsed.formatVersion;
+	const expectedKind = SUPPORTED_MANIFEST_KINDS.get(formatVersion);
+	if (!expectedKind) {
+		throw new TestCaseManifestError(
+			`unsupported formatVersion ${String(formatVersion)}; this editor reads ` +
+				`${[...SUPPORTED_MANIFEST_KINDS.keys()].join(' and ')}`,
+		);
 	}
-	if (parsed.kind !== TEST_CASE_MANIFEST_KIND) {
-		throw new TestCaseManifestError(`unsupported manifest kind ${String(parsed.kind)}`);
+	// Each version pins its own kind, so a v2 body cannot arrive under a v1 label.
+	if (parsed.kind !== expectedKind) {
+		throw new TestCaseManifestError(
+			`formatVersion ${formatVersion} expects kind "${expectedKind}", got "${String(parsed.kind)}"`,
+		);
 	}
 	const variant = requiredString(parsed.variant, 'variant', 256);
 	if (!Array.isArray(parsed.books)) throw new TestCaseManifestError('books must be an array');
@@ -195,8 +215,8 @@ function parseTestCaseManifest(source, { fileName = 'test-books.json' } = {}) {
 		manifestId: id,
 		fileName: normalizedFileName,
 		sourceToken: token,
-		formatVersion: TEST_CASE_FORMAT_VERSION,
-		kind: TEST_CASE_MANIFEST_KIND,
+		formatVersion,
+		kind: expectedKind,
 		variant,
 		publishId:
 			typeof parsed.publishId === 'number' && Number.isSafeInteger(parsed.publishId)
@@ -397,8 +417,11 @@ module.exports = {
 	MAX_BOOKS_PER_MANIFEST,
 	MAX_MANIFEST_BYTES,
 	MAX_MANIFEST_FILES,
+	SUPPORTED_MANIFEST_KINDS,
 	TEST_CASE_FORMAT_VERSION,
+	TEST_CASE_FORMAT_VERSION_V2,
 	TEST_CASE_MANIFEST_KIND,
+	TEST_CASE_MANIFEST_KIND_V2,
 	TestCaseManifestError,
 	isPathWithin,
 	parseTestCaseManifest,

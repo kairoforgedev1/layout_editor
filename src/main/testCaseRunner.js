@@ -84,7 +84,8 @@ function resolveTestCaseSelection({ appDir, manifestId, sourceToken: expectedTok
 	const book = manifest.books.find((entry) => entry.key === bookKey);
 	if (!book) throw new Error('The selected testcase no longer exists. Refresh Simulator.');
 
-	const testcaseRoot = fs.realpathSync(path.join(fs.realpathSync(path.resolve(appDir)), 'testcases'));
+	const appRoot = fs.realpathSync(path.resolve(appDir));
+	const testcaseRoot = fs.realpathSync(path.join(appRoot, 'testcases'));
 	const candidate = path.join(testcaseRoot, manifest.fileName);
 	const stat = fs.lstatSync(candidate);
 	if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('The selected manifest is not a regular file.');
@@ -110,32 +111,96 @@ function resolveTestCaseSelection({ appDir, manifestId, sourceToken: expectedTok
 	) {
 		throw new Error('The selected testcase changed. Refresh Simulator and select it again.');
 	}
-	if (typeof raw.gameFolder !== 'string' || !raw.gameFolder.trim()) {
-		throw new Error('This manifest does not name the published math folder containing its books.');
-	}
-
 	return {
 		manifest,
 		book,
-		gameFolder: raw.gameFolder.trim(),
+		booksRoot: resolveBooksRoot({ appRoot, testcaseRoot, raw }),
 	};
 }
 
-/** Resolve the mode's compressed book file without trusting paths in index.json. */
-function resolveMathEventsFile(gameFolder, mode) {
-	if (!MODE_PATTERN.test(mode)) throw new Error(`Invalid testcase mode "${String(mode)}".`);
+/**
+ * Locate the directory holding this manifest's compressed books.
+ *
+ * v2 `booksDirectory` is relative to the manifest's own folder and must stay
+ * inside the game project — that relative form is what lets one manifest work on
+ * every machine that has the project. v1 `gameFolder` is an absolute path from
+ * whichever machine published it, and only resolves there; it stays supported so
+ * manifests that have not been regenerated keep running.
+ */
+function resolveBooksRoot({ appRoot, testcaseRoot, raw }) {
+	const booksDirectory = typeof raw.booksDirectory === 'string' ? raw.booksDirectory.trim() : '';
+	if (booksDirectory) {
+		if (booksDirectory.includes('\0')) {
+			throw new Error('The manifest booksDirectory is not a valid path.');
+		}
+		if (path.isAbsolute(booksDirectory)) {
+			// Legal, but it pins the manifest to one machine the way v1 did.
+			return path.resolve(booksDirectory);
+		}
+		const resolved = path.resolve(testcaseRoot, booksDirectory);
+		if (!isPathWithin(appRoot, resolved)) {
+			throw new Error(
+				`The manifest booksDirectory "${booksDirectory}" resolves outside the game project.`,
+			);
+		}
+		let real;
+		try {
+			real = fs.realpathSync(resolved);
+		} catch {
+			throw new Error(
+				`The manifest books folder "${booksDirectory}" is missing from this project ` +
+					`(expected ${resolved}). These exports are usually too large for source control — ` +
+					'copy them from whoever published the manifest.',
+			);
+		}
+		// Re-check after resolving links: a symlink must not lead out of the project.
+		if (!isPathWithin(appRoot, real)) {
+			throw new Error(
+				`The manifest booksDirectory "${booksDirectory}" resolves outside the game project.`,
+			);
+		}
+		return real;
+	}
+
+	const gameFolder = typeof raw.gameFolder === 'string' ? raw.gameFolder.trim() : '';
+	if (!gameFolder) {
+		throw new Error(
+			'This manifest names neither booksDirectory nor gameFolder, so its books cannot be found.',
+		);
+	}
 	if (!path.isAbsolute(gameFolder)) {
 		throw new Error('The manifest gameFolder must be an absolute published-math directory.');
 	}
-	const mathRoot = fs.realpathSync(path.resolve(gameFolder));
-	if (!fs.statSync(mathRoot).isDirectory()) throw new Error('The manifest gameFolder is not a directory.');
+	return path.resolve(gameFolder);
+}
+
+/** Resolve the mode's compressed book file without trusting paths in index.json. */
+function resolveMathEventsFile(booksRoot, mode) {
+	if (!MODE_PATTERN.test(mode)) throw new Error(`Invalid testcase mode "${String(mode)}".`);
+	if (!path.isAbsolute(booksRoot)) {
+		throw new Error('The manifest books folder must resolve to an absolute directory.');
+	}
+	let mathRoot;
+	try {
+		mathRoot = fs.realpathSync(path.resolve(booksRoot));
+	} catch {
+		// The common case for a v1 manifest opened on a second machine: the absolute
+		// publish path it names exists only where it was generated.
+		throw new Error(
+			`The books folder named by this manifest does not exist here: ${booksRoot}. ` +
+				'Regenerate the manifest with a project-relative booksDirectory, or copy that folder onto this machine.',
+		);
+	}
+	if (!fs.statSync(mathRoot).isDirectory()) {
+		throw new Error('The manifest books folder is not a directory.');
+	}
 	const indexCandidate = path.join(mathRoot, 'index.json');
 	if (fs.lstatSync(indexCandidate).isSymbolicLink()) {
 		throw new Error('Published math index.json must not be a symlink.');
 	}
 	const indexPath = fs.realpathSync(indexCandidate);
 	if (!isPathWithin(mathRoot, indexPath) || indexPath === mathRoot) {
-		throw new Error('Published math index.json resolves outside gameFolder.');
+		throw new Error('Published index.json resolves outside the books folder.');
 	}
 	const indexBuffer = boundedFile(indexPath, MAX_INDEX_BYTES, 'Published math index.json');
 	let index;
@@ -160,7 +225,7 @@ function resolveMathEventsFile(gameFolder, mode) {
 	}
 	const eventsPath = fs.realpathSync(eventsCandidate);
 	if (!isPathWithin(mathRoot, eventsPath) || eventsPath === mathRoot) {
-		throw new Error(`Mode "${mode}" events resolve outside gameFolder.`);
+		throw new Error(`Mode "${mode}" events resolve outside the books folder.`);
 	}
 	const stat = fs.lstatSync(eventsPath);
 	if (stat.isSymbolicLink() || !stat.isFile()) {
@@ -385,7 +450,7 @@ async function runTestCase(options) {
 		sourceToken: token,
 		bookKey,
 	});
-	const source = resolveMathEventsFile(selection.gameFolder, selection.book.mode);
+	const source = resolveMathEventsFile(selection.booksRoot, selection.book.mode);
 	const cacheKey = `${source.eventsPath}\0${source.fileSignature}\0${selection.book.bookId}`;
 	const outcome = await extractTestBook({
 		eventsPath: source.eventsPath,

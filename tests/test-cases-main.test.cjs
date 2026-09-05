@@ -211,3 +211,81 @@ test('direct manifest filename validation rejects traversal and nested paths', (
 		assert.throws(() => requireDirectJsonFileName(unsafe), /direct JSON filename/i);
 	}
 });
+
+// ---------------------------------------------------------------------------
+// formatVersion 2
+// ---------------------------------------------------------------------------
+
+const manifestV2 = (overrides = {}) => ({
+	formatVersion: 2,
+	kind: 'game-test-book-manifest',
+	stakeReplayMaxBookId: 100000,
+	variant: 'nerd_herd',
+	publishId: '20260830_220052',
+	// Relative to the manifest's own folder: what makes it portable.
+	booksDirectory: '../static/data',
+	generatedAt: '2026-09-03T06:41:30.804Z',
+	books: [
+		{
+			mode: 'base',
+			bookId: 1,
+			criteria: 'basegame',
+			payoutMultiplierCents: 50,
+			payoutX: 0.5,
+			stakeReplaySafe: true,
+			scenario: { maxWin: false, paylineIds: [2, 10], symbols: ['L1', 'L3'] },
+		},
+	],
+	...overrides,
+});
+
+test('a formatVersion 2 manifest is read alongside version 1', (t) => {
+	const appDir = makeApp(t);
+	writeManifest(appDir, 'v1.json', manifest());
+	writeManifest(appDir, 'v2.json', manifestV2());
+
+	const result = scanTestCases({ appDir });
+	assert.deepEqual(result.fileErrors, [], 'neither version may be rejected');
+	assert.equal(result.manifests.length, 2);
+
+	const byName = Object.fromEntries(result.manifests.map((entry) => [entry.fileName, entry]));
+	assert.equal(byName['v1.json'].formatVersion, 1);
+	assert.equal(byName['v1.json'].kind, 'math-checker-test-book-manifest');
+	assert.equal(byName['v2.json'].formatVersion, 2, 'the parsed version is reported, not a constant');
+	assert.equal(byName['v2.json'].kind, 'game-test-book-manifest');
+	assert.equal(byName['v2.json'].variant, 'nerd_herd');
+	assert.equal(byName['v2.json'].books.length, 1);
+});
+
+test('stakeReplaySafe is carried on v2 books and unknown on v1', (t) => {
+	const appDir = makeApp(t);
+	writeManifest(appDir, 'v1.json', manifest());
+	writeManifest(appDir, 'v2.json', manifestV2());
+
+	const found = Object.fromEntries(
+		scanTestCases({ appDir }).manifests.map((entry) => [entry.fileName, entry]),
+	);
+	assert.equal(found['v2.json'].books[0].stakeReplaySafe, true);
+	assert.equal(found['v1.json'].books[0].stakeReplaySafe, null, 'absent is unknown, not false');
+});
+
+test('each version is pinned to its own kind', (t) => {
+	const appDir = makeApp(t);
+	// A v2 body wearing the v1 label, and the reverse.
+	writeManifest(appDir, 'mixed.json', manifestV2({ kind: 'math-checker-test-book-manifest' }));
+	writeManifest(appDir, 'swapped.json', manifest({ formatVersion: 2 }));
+
+	const errors = scanTestCases({ appDir }).fileErrors;
+	assert.equal(errors.length, 2);
+	for (const entry of errors) assert.match(entry.error, /expects kind/i);
+});
+
+test('an unknown formatVersion names the versions this editor reads', (t) => {
+	const appDir = makeApp(t);
+	writeManifest(appDir, 'future.json', manifestV2({ formatVersion: 3 }));
+
+	const errors = scanTestCases({ appDir }).fileErrors;
+	assert.equal(errors.length, 1);
+	assert.match(errors[0].error, /unsupported formatVersion 3/i);
+	assert.match(errors[0].error, /reads 1 and 2/i, 'the message must say what is supported');
+});
