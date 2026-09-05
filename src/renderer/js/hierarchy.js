@@ -1,6 +1,7 @@
 /** Left panel: element tree with search, filters, selection and visibility toggles. */
 import { state, on, emit } from './state.js';
 import { bridgeSend } from './bridge.js';
+import { clearSelection } from './selection.js';
 import {
 	hasOverride,
 	activeScopeProfile,
@@ -180,6 +181,12 @@ function makeRow(node, depth, hasChildren, isTopLayer = false) {
 	}
 
 	row.addEventListener('click', () => {
+		// Clicking the selected row again clears it. Only in the tree: a repeat
+		// click in the preview is already taken, for cycling overlapping elements.
+		if (state.selection === node.id) {
+			clearSelection();
+			return;
+		}
 		state.selection = node.id;
 		if (node.persistedOnly) state.values = null;
 		else bridgeSend('select', { id: node.id });

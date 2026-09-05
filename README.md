@@ -111,6 +111,28 @@ Electron 33's embedded Node does not decode the Zstandard math export; Node 22.1
 or Node 24 is recommended. The Simulator and Performance docks are mutually
 exclusive so the preview retains usable width.
 
+## Panel layout
+
+The preview gets the space the side panels are not using:
+
+- **The inspector hides itself when nothing is selected.** An empty column is
+  330px taken from the preview for no benefit, so it collapses and comes back
+  the moment you select an element. Selecting a saved-but-unmounted element
+  still shows the panel — that state has something to say.
+- **The element list is resizable.** Drag the divider between it and the
+  preview; double-click it to reset. It will not go below 200px or take more
+  than half the window, and the width is remembered between sessions.
+- **The element list scrolls sideways.** Deeply nested names are no longer
+  truncated with an ellipsis — scroll to read them in full. Every row takes the
+  width of the widest one, so a selection still highlights edge to edge when the
+  list is scrolled.
+
+Three ways to deselect: click the selected row in the list again, press the
+**✕** in the inspector header, or press **Esc**. Note that a repeat click in the
+*preview* does something different — it cycles through overlapping elements.
+
+Either change refits the preview when zoom is set to **Fit**.
+
 ## Layout profiles
 
 The game's own responsive system resolves one of four `layoutType`s from the
@@ -478,16 +500,17 @@ a selection round-trip, a real override application (applied and reverted),
 asset listing, file writability, and a hidden-window load of the game
 *without* editor mode (canvas renders, bridge stays off).
 
-## Game states while editing
+## Reaching game states while editing
 
-The **States ▾** menu lists actions the game registered for the editor
-(`apps/lines/src/game/layoutOverrides.ts` → `registerEditorGameHooks`), e.g.
-`freeSpinCounterShow`, `winShow`, `freeSpinIntroShow`. They broadcast the game's
-own emitter events so state-specific elements mount and become editable. Add more
-hooks there as needed — they never run outside the editor.
+Play the game in **Play** mode — spins run against the mock RGS with the real
+math files — and switch to **Edit** mode at any moment to adjust whatever is on
+screen. For an exact outcome rather than a random one, use the **Simulator** to
+force a specific book.
 
-You can also simply play the game in **Play** mode (spins run against the mock
-RGS with the real math files) and switch to **Edit** mode at any moment.
+> The **States ▾** menu that broadcast a game's registered editor hooks directly
+> has been removed. The hooks themselves (`registerEditorGameHooks` in
+> `apps/lines/src/game/layoutOverrides.ts`) still exist and still run; nothing in
+> the editor triggers them any more.
 
 ## Keyboard
 
@@ -496,13 +519,19 @@ RGS with the real math files) and switch to **Edit** mode at any moment.
 | Arrows | nudge selected element 1px (Shift = 10, Alt = 0.1) |
 | Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z | undo / redo |
 | Ctrl+S | save (with summary) |
-| Ctrl+R | reload the **game** preview, clearing the HTTP cache first |
+| Ctrl+R | reload the **game** preview, clearing the HTTP cache first. With nothing running yet it starts the mock RGS, the dev server and the preview instead |
 | Ctrl+Shift+R | reload the **whole editor** and restart its managed mock RGS (prompts if there are unsaved changes) |
 | Ctrl+M | mute / unmute the game preview |
+| Arrows / Shift+Arrows / Home | with the panel divider focused: resize by 10px / 40px, or reset it |
 | Delete | remove selected element (opens the removal dialog) |
-| Esc | clear selection |
+| Esc | clear selection (also: the ✕ in the inspector, or clicking the selected row again) |
 | click again / Alt+click | cycle overlapping elements |
 | Shift while resizing | keep aspect ratio (corners always keep it) |
+
+The toolbar deliberately has no **Restart** or **Mock RGS** button: `Ctrl+R`
+covers both, starting the mock RGS and dev server when nothing is running and
+hard-reloading the game when something is. **Setup ▾ → Keyboard shortcuts** lists
+every binding, and the empty preview shows the two reload keys.
 
 In Edit mode the game does not receive keyboard/pointer input; in Play mode the
 editor does not intercept anything. The reload and mute shortcuts are the

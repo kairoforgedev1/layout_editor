@@ -54,6 +54,8 @@ import {
 	hasRuntimeIdentityConflict,
 } from './elementOwnership.js';
 import { isTemporaryLayoutContainer } from '../../shared/layoutIdentity.js';
+import { setInspectorVisible } from './panels.js';
+import { clearSelection } from './selection.js';
 
 let inspEl;
 // id whose full (editable) inspector DOM is currently mounted, so the live value
@@ -789,7 +791,31 @@ function refreshInspectorLiveValues() {
 	}
 }
 
+/** Deselect affordance, matching the close button on the docked panels. */
+function appendInspectorClose(header) {
+	const close = document.createElement('button');
+	close.type = 'button';
+	close.className = 'insp-close';
+	close.textContent = '✕';
+	close.title = 'Deselect (Esc)';
+	close.setAttribute('aria-label', 'Deselect the current element');
+	close.addEventListener('click', clearSelection);
+	header.appendChild(close);
+}
+
+/**
+ * Render, then show the panel only if it ended up with something to inspect.
+ *
+ * The empty state is a single top-level hint, so its presence is the test. A
+ * nested hint inside populated content must not collapse the panel, hence the
+ * direct-child selector.
+ */
 export function renderInspector() {
+	renderInspectorContent();
+	setInspectorVisible(!inspEl?.querySelector(':scope > .empty-hint'));
+}
+
+function renderInspectorContent() {
 	if (!inspEl) return;
 	const values = state.values;
 	if (!state.selection || !values || values.id !== state.selection) {
@@ -808,6 +834,7 @@ export function renderInspector() {
 			header.innerHTML = '<span class="el-name"></span><span class="el-type"></span>';
 			header.querySelector('.el-name').textContent = id;
 			header.querySelector('.el-type').textContent = `${detachedDef.kind} · saved editor element`;
+			appendInspectorClose(header);
 			inspEl.appendChild(header);
 
 			const notice = document.createElement('div');
@@ -889,6 +916,7 @@ export function renderInspector() {
 	header.innerHTML = `<span class="el-name"></span><span class="el-type"></span>`;
 	header.querySelector('.el-name').textContent = spawnedId;
 	header.querySelector('.el-type').textContent = spawnedDef ? `${values.type} · editor` : values.type;
+	appendInspectorClose(header);
 	inspEl.appendChild(header);
 
 	const scopeInfo = document.createElement('div');
@@ -1553,4 +1581,8 @@ export function initInspector() {
 	on('overrides', renderInspector);
 	on('preview', renderInspector);
 	on('tree', renderInspector);
+	// Derive the opening state the same way as every later one. Without this the
+	// panel keeps the empty hint markup from index.html and stays visible until
+	// the first selection event, which is the whole thing being fixed here.
+	renderInspector();
 }

@@ -212,6 +212,86 @@ export async function runVerification() {
 }
 
 // ---------------------------------------------------------------------------
+// Keyboard shortcuts
+// ---------------------------------------------------------------------------
+
+/**
+ * The toolbar deliberately does not carry a button for everything. Restarting,
+ * reloading and starting the mock RGS all live on Ctrl+R, so the shortcuts need
+ * somewhere discoverable to be written down.
+ */
+/**
+ * A row is [parts, description]. A string in `parts` renders as a keycap, an
+ * object as plain wording — separators, and the mouse gestures that are not keys.
+ */
+const T = (text) => ({ text });
+
+const SHORTCUTS = [
+	['Preview', [
+		[['Ctrl', 'R'], 'Reload the game, cache cleared first. With nothing running it starts the mock RGS, the dev server and the preview instead.'],
+		[['Ctrl', 'Shift', 'R'], 'Reload the editor itself and restart the mock RGS it manages. Prompts if there are unsaved changes.'],
+		[['Ctrl', 'M'], 'Mute / unmute the game preview.'],
+	]],
+	['Editing', [
+		[['Ctrl', 'S'], 'Save layout changes, with a summary first.'],
+		[['Ctrl', 'Z'], 'Undo.'],
+		[['Ctrl', 'Y', T('or'), 'Ctrl', 'Shift', 'Z'], 'Redo.'],
+		[['Arrows'], 'Nudge the selected element 1px. Shift 10px, Alt 0.1px.'],
+		[['Shift', T('while resizing')], 'Keep the aspect ratio. Corner handles always keep it.'],
+		[['Delete'], 'Remove the selected element.'],
+	]],
+	['Selection', [
+		[['Esc'], 'Clear the selection.'],
+		[[T('Click the selected row again')], 'Also clears it, in the element list.'],
+		[[T('Click again, or'), 'Alt', T('+ click')], 'In the preview: cycle through overlapping elements.'],
+		[[T('The'), T('✕'), T('in the inspector')], 'Clears the selection and collapses the panel.'],
+	]],
+	['Panels', [
+		[[T('Drag the divider')], 'Resize the element list. Double-click it to reset.'],
+		[['Arrows', T('or'), 'Home'], 'With the divider focused: resize by 10px (Shift 40px), or reset it.'],
+	]],
+];
+
+function showShortcuts() {
+	const wrap = document.createElement('div');
+	wrap.className = 'shortcut-doc';
+	for (const [group, rows] of SHORTCUTS) {
+		const heading = document.createElement('h4');
+		heading.textContent = group;
+		wrap.appendChild(heading);
+		const table = document.createElement('table');
+		table.className = 'shortcut-table';
+		for (const [keys, description] of rows) {
+			const tr = document.createElement('tr');
+			const keyCell = document.createElement('td');
+			keyCell.className = 'shortcut-keys';
+			for (const part of keys) {
+				if (typeof part === 'string') {
+					const kbd = document.createElement('kbd');
+					kbd.textContent = part;
+					keyCell.appendChild(kbd);
+					continue;
+				}
+				const span = document.createElement('span');
+				span.className = 'shortcut-word';
+				span.textContent = part.text;
+				keyCell.appendChild(span);
+			}
+			const textCell = document.createElement('td');
+			textCell.textContent = description;
+			tr.append(keyCell, textCell);
+			table.appendChild(tr);
+		}
+		wrap.appendChild(table);
+	}
+	return showModal({
+		title: 'Keyboard shortcuts',
+		body: wrap,
+		buttons: [{ label: 'Close', value: true, primary: true }],
+	});
+}
+
+// ---------------------------------------------------------------------------
 // Menu
 // ---------------------------------------------------------------------------
 
@@ -230,6 +310,8 @@ export function setupMenu(anchor) {
 			},
 		},
 		{ label: 'Restart preview', onClick: restartPreview },
+		{ sep: true },
+		{ label: 'Keyboard shortcuts…', onClick: showShortcuts },
 		{ sep: true },
 		{ header: 'New game setup' },
 		{

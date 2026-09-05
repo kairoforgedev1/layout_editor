@@ -36,6 +36,7 @@ export const state = {
     runPhase: null, // null | preparing | starting
     lastResult: null,
   },
+  panels: { leftWidth: 270 }, // element-list width, dragged and persisted
   muted: false, // game preview audio; the host window holds the real flag
   mode: "preview", // 'edit' | 'preview'
   scope: "profile", // 'profile' | 'base'

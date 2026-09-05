@@ -20,6 +20,8 @@ import { initToolbar, setMode, doSave } from './toolbar.js';
 import { initStatusbar } from './statusbar.js';
 import { initPerformanceMonitor } from './performanceMonitor.js';
 import { initAudio, toggleMute } from './audio.js';
+import { initPanels } from './panels.js';
+import { clearSelection } from './selection.js';
 import { initTestCasesPanel } from './testCasesPanel.js';
 import {
 	initProcEvents,
@@ -79,10 +81,7 @@ function initKeyboard() {
 		if (inInput) return;
 
 		if (event.key === 'Escape') {
-			state.selection = null;
-			state.values = null;
-			bridgeSend('select', { id: null });
-			emit('selection');
+			clearSelection();
 			return;
 		}
 		if (event.key === 'Delete' && state.selection) {
@@ -144,6 +143,7 @@ async function boot() {
 	initPerformanceMonitor();
 	initTestCasesPanel();
 	initAudio();
+	initPanels();
 	initKeyboard();
 
 	setResolution(1280, 720, 10);

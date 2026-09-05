@@ -161,8 +161,17 @@ input[type="search"] {
 
 #tree {
   flex: 1;
+  /* Both axes: deep nesting pushes names past the panel width, and truncating
+     them hid exactly the part that tells two similar ids apart.
+
+     A one-column grid rather than plain blocks: every row then takes the width
+     of the widest one, so a selected short row still paints edge to edge when
+     the list is scrolled right instead of stopping at the old viewport edge. */
   overflow: auto;
   padding: 4px 0;
+  display: grid;
+  grid-auto-rows: min-content;
+  align-content: start;
 }
 .tree-row {
   display: flex;
@@ -191,8 +200,7 @@ input[type="search"] {
   flex: none;
 }
 .tree-row .name {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: none;
 }
 .tree-row .name.auto {
   color: var(--text-dim);
@@ -201,8 +209,7 @@ input[type="search"] {
 .tree-row .preview {
   color: var(--text-dim);
   font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: none;
 }
 .tree-row .flags {
   margin-left: auto;
@@ -248,6 +255,37 @@ input[type="search"] {
 }
 
 /* ---------- center / viewport ---------- */
+/* Panel divider: a 5px grab strip sitting on the panel border. Wide enough to
+   hit without hunting for it, and it lights up so it is discoverable at all. */
+.resizer {
+  flex: 0 0 5px;
+  background: var(--bg);
+  cursor: col-resize;
+  position: relative;
+  z-index: 5;
+}
+.resizer:hover,
+.resizer.dragging {
+  background: var(--accent);
+}
+.resizer:focus-visible {
+  outline: none;
+  background: var(--accent-2);
+}
+/* Hold the resize cursor while dragging: without this it flickers to a text
+   caret every time the pointer crosses a panel or a label. */
+body.resizing,
+body.resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+/* Nothing selected: hand the width back to the preview instead of showing a
+   column of empty panel. */
+#right[hidden] {
+  display: none;
+}
+
 #center {
   flex: 1;
   display: flex;
@@ -295,6 +333,54 @@ input[type="search"] {
   font-size: 12px;
   pointer-events: none;
 }
+/* Keycaps, in the empty preview and the shortcuts dialog. */
+kbd {
+  display: inline-block;
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 5px;
+  margin: 0 1px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.placeholder-keys {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 2;
+  color: var(--text-dim);
+  max-width: 460px;
+}
+.shortcut-doc h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.shortcut-doc h4:first-child {
+  margin-top: 0;
+}
+.shortcut-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.shortcut-table td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+.shortcut-word {
+  color: var(--text-dim);
+  margin: 0 3px;
+}
+.shortcut-table .shortcut-keys {
+  white-space: nowrap;
+  padding-right: 14px;
+  width: 1%;
+}
+
 #stage-placeholder {
   position: absolute;
   inset: 0;
@@ -627,6 +713,19 @@ input[type="search"] {
   align-items: baseline;
   gap: 6px;
   flex-wrap: wrap;
+}
+.insp-header .insp-close {
+  margin-left: auto;
+  align-self: flex-start;
+  padding: 0 6px;
+  line-height: 20px;
+  color: var(--text-dim);
+  border-color: transparent;
+  background: transparent;
+}
+.insp-header .insp-close:hover {
+  color: var(--text);
+  background: #303743;
 }
 .insp-header .el-name {
   font-weight: 600;

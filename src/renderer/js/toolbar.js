@@ -2,13 +2,7 @@
 import { state, on, emit, toast } from "./state.js";
 import { PRESETS } from "./resolutions.js";
 import { bridgeSend, flushBridgeEdits, sendEditorMode } from "./bridge.js";
-import {
-  openProject,
-  startPreview,
-  restartPreview,
-  ensureRgs,
-  saveOverrides,
-} from "./project.js";
+import { openProject, startPreview, saveOverrides } from "./project.js";
 import {
   undo,
   redo,
@@ -197,29 +191,6 @@ function layoutMenu(anchor) {
   showMenu(anchor, items);
 }
 
-function statesMenu(anchor) {
-  const items = [{ header: "Game states / actions" }];
-  const gameEvents = state.gameEvents.filter(
-    (name) => !name.startsWith("__layoutEditor"),
-  );
-  if (!gameEvents.length) {
-    items.push({ label: "No editor game actions registered", disabled: true });
-  }
-  for (const name of gameEvents) {
-    items.push({
-      label: name,
-      onClick: () => {
-        bridgeSend("emitGameEvent", { name });
-        state.gameState = name;
-        emit("preview");
-      },
-    });
-  }
-  items.push({ sep: true });
-  items.push({ label: "Reload game preview", onClick: restartPreview });
-  showMenu(anchor, items);
-}
-
 export function initToolbar() {
   // presets
   const presetSel = $("sel-preset");
@@ -269,8 +240,6 @@ export function initToolbar() {
   // project / preview
   $("btn-open").addEventListener("click", () => openProject());
   $("btn-preview").addEventListener("click", startPreview);
-  $("btn-restart").addEventListener("click", restartPreview);
-  $("btn-rgs").addEventListener("click", ensureRgs);
 
   // scope
   $("sel-scope").addEventListener("change", () => {
@@ -302,9 +271,6 @@ export function initToolbar() {
   );
   $("btn-menu-layout").addEventListener("click", (event) =>
     layoutMenu(event.currentTarget),
-  );
-  $("btn-menu-states").addEventListener("click", (event) =>
-    statesMenu(event.currentTarget),
   );
 
   // misc

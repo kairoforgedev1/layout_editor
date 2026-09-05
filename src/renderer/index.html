@@ -15,15 +15,9 @@
       <div class="tb-group">
         <button
           id="btn-preview"
-          title="Start the game dev server + mock RGS and load the game"
+          title="Start the mock RGS + dev server and load the game — Ctrl+R does the same, and reloads it afterwards"
         >
           Start Preview
-        </button>
-        <button id="btn-restart" title="Reload the game preview">
-          Restart
-        </button>
-        <button id="btn-rgs" title="Start / attach the mock RGS server">
-          Mock RGS
         </button>
       </div>
       <div class="tb-group">
@@ -90,9 +84,6 @@
         </button>
         <button id="btn-menu-guides" title="Guides, grid and snapping">
           Guides ▾
-        </button>
-        <button id="btn-menu-states" title="Trigger game states for editing">
-          States ▾
         </button>
       </div>
       <div class="tb-group tb-right">
@@ -182,6 +173,16 @@
         <div id="tree" tabindex="0"></div>
       </aside>
 
+      <div
+        id="left-resizer"
+        class="resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize the element list"
+        title="Drag to resize · double-click to reset"
+        tabindex="0"
+      ></div>
+
       <section id="center">
         <div id="viewport">
           <div id="stage-outer">
@@ -191,6 +192,13 @@
                 <div>
                   <h2>No game loaded</h2>
                   <p>Open a project and press <b>Start Preview</b>.</p>
+                  <p class="placeholder-keys">
+                    <kbd>Ctrl</kbd><kbd>R</kbd> starts the mock RGS, dev server
+                    and preview — and reloads the game once it is running.<br />
+                    <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>R</kbd> restarts the
+                    editor and its mock RGS.<br />
+                    Full list under <b>Setup ▾ → Keyboard shortcuts</b>.
+                  </p>
                 </div>
               </div>
             </div>
