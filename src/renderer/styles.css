@@ -16,6 +16,60 @@
   box-sizing: border-box;
 }
 
+/* ---------------------------------------------------------------------------
+   Scrollbars
+
+   Default Chromium bars are pale and heavy, and this window has ten scrolling
+   regions, so they were the loudest thing in a deliberately quiet dark UI.
+
+   These are the -webkit- pseudo-elements, which is safe: this interface only
+   ever runs inside Electron. They are deliberately NOT paired with the standard
+   `scrollbar-width` / `scrollbar-color` — where both are present the standard
+   properties win, and they cannot express the rounding or the inset below. The
+   game preview is a separate document and keeps its own scrollbars.
+   --------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+/* A faint darkening rather than a colour: this same channel has to sit on the
+   panels, on the near-black log, and on the viewport's checkerboard. */
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.22);
+}
+::-webkit-scrollbar-thumb {
+  background-color: #39414f;
+  border-radius: 6px;
+  /* A transparent border clipped to the padding box insets the thumb, so it
+     reads as a pill floating in the channel instead of a slab filling it. */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4d5768;
+}
+/* Accent only while actually dragging — a moment of the tool's own colour. */
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--accent);
+}
+/* Keep a short thumb grabbable in very long lists, per axis so a horizontal
+   bar does not inherit a vertical minimum and become a square. */
+::-webkit-scrollbar-thumb:vertical {
+  min-height: 34px;
+}
+::-webkit-scrollbar-thumb:horizontal {
+  min-width: 34px;
+}
+/* Where the two bars meet. Without this it falls back to a pale default square,
+   which the element list shows now that it scrolls on both axes. */
+::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.22);
+}
+/* No stepper arrows: dead weight at this size, and they never matched. */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 html,
 body {
   margin: 0;

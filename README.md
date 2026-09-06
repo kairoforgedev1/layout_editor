@@ -117,8 +117,10 @@ The preview gets the space the side panels are not using:
 
 - **The inspector hides itself when nothing is selected.** An empty column is
   330px taken from the preview for no benefit, so it collapses and comes back
-  the moment you select an element. Selecting a saved-but-unmounted element
-  still shows the panel — that state has something to say.
+  the moment you select an element. It stays open for the whole time something
+  is selected, even before the game has described it — in **Play** mode the game
+  never sends layout values, so the panel names the element and says to switch
+  to **Edit** mode rather than disappearing.
 - **The element list is resizable.** Drag the divider between it and the
   preview; double-click it to reset. It will not go below 200px or take more
   than half the window, and the width is remembered between sessions.

@@ -804,15 +804,16 @@ function appendInspectorClose(header) {
 }
 
 /**
- * Render, then show the panel only if it ended up with something to inspect.
+ * Render, then show the panel whenever something is selected.
  *
- * The empty state is a single top-level hint, so its presence is the test. A
- * nested hint inside populated content must not collapse the panel, hence the
- * direct-child selector.
+ * Visibility follows the selection, never the rendered content. An element whose
+ * values have not arrived yet is still selected, and in Play mode the game never
+ * sends values at all — keying off content collapsed the panel for the entire
+ * time anything was selected in Play mode, which read as the panel being broken.
  */
 export function renderInspector() {
 	renderInspectorContent();
-	setInspectorVisible(!inspEl?.querySelector(':scope > .empty-hint'));
+	setInspectorVisible(!!state.selection);
 }
 
 function renderInspectorContent() {
@@ -864,6 +865,27 @@ function renderInspectorContent() {
 			);
 			actions.appendChild(remove);
 			inspEl.appendChild(actions);
+			return;
+		}
+		if (state.selection) {
+			// Selected, but the game has not described it. In Play mode it never
+			// will, so say which of the two situations this is rather than showing
+			// a "select something" hint at someone who just did.
+			inspEl.innerHTML = '';
+			const header = document.createElement('div');
+			header.className = 'insp-header';
+			header.innerHTML = '<span class="el-name"></span>';
+			header.querySelector('.el-name').textContent = state.selection;
+			appendInspectorClose(header);
+			inspEl.appendChild(header);
+
+			const hint = document.createElement('div');
+			hint.className = 'empty-hint';
+			hint.textContent =
+				state.mode === 'edit'
+					? 'Waiting for the game preview to describe this element…'
+					: 'Switch to Edit mode to see and change this element’s layout values.';
+			inspEl.appendChild(hint);
 			return;
 		}
 		inspEl.innerHTML = '<div class="empty-hint">Select an element in the preview or the list.</div>';
