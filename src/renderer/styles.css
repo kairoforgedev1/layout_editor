@@ -101,6 +101,18 @@ button {
 button:hover {
   background: #303743;
 }
+/* Icon buttons: centre the glyph and let it inherit the button's colour, so it
+   dims with :disabled and lifts on :hover like a text label would. */
+button > svg {
+  display: block;
+  color: inherit;
+}
+#toolbar button:has(> svg) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+}
 button:disabled {
   opacity: 0.45;
   cursor: default;

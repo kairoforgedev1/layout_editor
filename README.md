@@ -35,7 +35,7 @@ npm start          # or: npm run start:debug (opens devtools + local control cha
    in the **Logs** panel.
 3. Click through the game's loading screen in **Play** mode.
 4. Pick a resolution preset (or type a custom width × height), toggle
-   portrait/landscape with **⟳**.
+   portrait/landscape with the orientation button next to it.
 5. Switch to **Edit** mode: click elements in the preview (click again to cycle
    through overlapping elements, Alt+click also cycles), or pick them in the left
    hierarchy. Drag to move, use the corner/edge handles to resize, edit exact

@@ -15,12 +15,7 @@ import {
   unsavedCount,
   PROFILES,
 } from "./overrides.js";
-import {
-  setPreset,
-  setResolution,
-  toggleOrientation,
-  stepPreset,
-} from "./viewport.js";
+import { setPreset, setResolution, toggleOrientation } from "./viewport.js";
 import { showMenu, showSaveSummary, confirmDialog } from "./dialogs.js";
 import { showAddElementDialog } from "./addElement.js";
 import { setupMenu } from "./setup.js";
@@ -225,8 +220,6 @@ export function initToolbar() {
     setResolution(state.resolution.width, Number($("in-height").value)),
   );
   $("btn-orient").addEventListener("click", toggleOrientation);
-  $("btn-prev-res").addEventListener("click", () => stepPreset(-1));
-  $("btn-next-res").addEventListener("click", () => stepPreset(1));
 
   // keep inputs in sync
   const syncInputs = () => {
@@ -254,8 +247,6 @@ export function initToolbar() {
   $("btn-mode-preview").addEventListener("click", () => setMode("preview"));
 
   // edit ops
-  $("btn-undo").addEventListener("click", undo);
-  $("btn-redo").addEventListener("click", redo);
   $("btn-save").addEventListener("click", doSave);
   $("btn-add").addEventListener("click", () => showAddElementDialog());
   $("btn-menu-setup").addEventListener("click", (event) =>

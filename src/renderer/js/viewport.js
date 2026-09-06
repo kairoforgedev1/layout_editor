@@ -85,13 +85,6 @@ export function toggleOrientation() {
 	setResolution(state.resolution.height, state.resolution.width, state.resolution.presetIndex);
 }
 
-export function stepPreset(direction) {
-	const count = PRESETS.length;
-	let index = state.resolution.presetIndex;
-	index = index === -1 ? (direction > 0 ? 0 : count - 1) : (index + direction + count) % count;
-	setPreset(index);
-}
-
 function zoomStep(direction) {
 	const current = currentScale();
 	let index = ZOOM_STEPS.findIndex((step) => step >= current - 0.001);

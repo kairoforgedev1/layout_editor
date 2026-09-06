@@ -22,7 +22,25 @@
       </div>
       <div class="tb-group">
         <select id="sel-preset" title="Device / resolution preset"></select>
-        <button id="btn-orient" title="Toggle portrait / landscape">⟳</button>
+        <button
+          id="btn-orient"
+          title="Swap width and height (portrait / landscape)"
+          aria-label="Swap width and height"
+        >
+          <svg
+            viewBox="0 0 18 14"
+            width="17"
+            height="13"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="0.8" y="0.8" width="6.4" height="12.4" rx="1.4" />
+            <rect x="10" y="3.6" width="7.2" height="6.8" rx="1.4" />
+          </svg>
+        </button>
         <input
           id="in-width"
           type="number"
@@ -38,8 +56,6 @@
           max="4096"
           title="Preview height"
         />
-        <button id="btn-prev-res" title="Previous preset">◀</button>
-        <button id="btn-next-res" title="Next preset">▶</button>
       </div>
       <div class="tb-group">
         <span class="dim">Edit target</span>
@@ -63,8 +79,6 @@
         </button>
       </div>
       <div class="tb-group">
-        <button id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
-        <button id="btn-redo" title="Redo (Ctrl+Y)">↷</button>
         <button
           id="btn-save"
           title="Review + save layout changes into the project (Ctrl+S)"
